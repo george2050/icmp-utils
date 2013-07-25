@@ -11,27 +11,39 @@
  *  USAGE: ping IP_ADDRESS
  * 
 */
-int main(int argc, char* argv[]) {
-  if ( argc != 2 ) {
-    fprintf(stderr,"Use the correct argument, dumbass. (ping IP-ADDR)\n");
-    exit(1);
-  }
 
-  char* host = argv[1];
+void ping(struct sockaddr*, int);
+
+int main(int argc, char* argv[]) {
+
   int sock = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
   
   if ( sock < 0 ) {
     perror("socket");
     exit(1);
 
+  } 
+  if ( argc != 2 ) {
+    fprintf(stderr,"Use the correct argument, dumbass. (ping IP-ADDR)\n");
+    exit(1);
   }
+
+  char* host = argv[1];
+
 
   struct addrinfo *ai;
   if (getaddrinfo ( host, NULL, NULL, &ai ) < 0 ) { 
     perror("getaddrinfo");
     exit(1);
   }
+
+  ping(ai->ai_addr, sock);
   
+
+}
+
+
+void ping (struct sockaddr* ai_addr, int sock) {
   struct icmp message;
   message.icmp_type = ICMP_ECHO;        // 8
   message.icmp_code = ICMP_ECHOREPLY;  // 0
@@ -42,9 +54,7 @@ int main(int argc, char* argv[]) {
 
 
   if ( sendto(sock, &message, sizeof(message), 
-        0, ai->ai_addr, sizeof(*ai->ai_addr)) < 0) {
+        0, ai_addr, sizeof(*ai_addr)) < 0) {
     perror("sendto");
   } 
-
-//  sendto(sock, /*data to send*/)
 }
