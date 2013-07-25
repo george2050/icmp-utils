@@ -41,7 +41,10 @@ int main(int argc, char* argv[]) {
   memset(&message.icmp_dun, 0, sizeof(message.icmp_dun));
 
 
-  
+  if ( sendto(sock, &message, sizeof(message), 
+        0, ai->ai_addr, sizeof(*ai->ai_addr)) < 0) {
+    perror("sendto");
+  } 
 
 //  sendto(sock, /*data to send*/)
 }
