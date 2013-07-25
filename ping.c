@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <netinet/ip_icmp.h>
 #include <string.h>
+#include <stdint.h>
 
 /*
  *  USAGE: ping IP_ADDRESS
@@ -38,8 +39,19 @@ int main(int argc, char* argv[]) {
   }
 
   ping(ai->ai_addr, sock);
-  
 
+  struct icmp message;
+  struct sockaddr_storage sendr; //like tumblr, fuck you
+  int fromlen = sizeof(sendr);
+  if (recvfrom(sock, &message, sizeof(message),
+        0, (struct sockaddr*) &sendr, &fromlen ) < 0) {
+    perror("recvfrom");
+    exit(1);
+  }
+
+  printf("%d\n",message.icmp_hun.ih_idseq.icd_id);
+
+  
 }
 
 
@@ -52,6 +64,13 @@ void ping (struct sockaddr* ai_addr, int sock) {
   message.icmp_hun.ih_idseq.icd_seq = 0;
   memset(&message.icmp_dun, 0, sizeof(message.icmp_dun));
 
+  uint32_t sum = 0;
+  int i;
+  for (i = 0; i < sizeof(message)/2; i++) { //this assumes even message size
+    sum += *((uint16_t *)&message+i);
+  }
+
+  message.icmp_cksum = (uint16_t) ~(sum + (sum >> 16));
 
   if ( sendto(sock, &message, sizeof(message), 
         0, ai_addr, sizeof(*ai_addr)) < 0) {
