@@ -13,7 +13,8 @@
  * 
 */
 
-void ping(struct sockaddr*, int);
+void ping(struct sockaddr*, int, uint16_t);
+void pong(int);
 
 int main(int argc, char* argv[]) {
 
@@ -38,7 +39,47 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  ping(ai->ai_addr, sock);
+  uint16_t seq = 0;
+
+  while(1) {
+    seq++;
+    ping(ai->ai_addr, sock, seq);
+    pong(sock);
+  }
+}
+
+
+void ping (struct sockaddr* ai_addr, int sock, uint16_t seq) {
+  struct icmp message;
+  message.icmp_type = ICMP_ECHO;        // 8
+  message.icmp_code = ICMP_ECHOREPLY;  // 0
+  message.icmp_cksum = 0;
+  message.icmp_hun.ih_idseq.icd_id = htons(1337); // we r so leet
+  message.icmp_hun.ih_idseq.icd_seq = htons(seq);
+  memset(&message.icmp_dun, 0, sizeof(message.icmp_dun));
+
+  // Calculate message checksum, which is a ones-complement sum
+  // of each word in the 16-bit value, with overflow stored in a 32-bit
+  // unsigned int and then the "overflow" added back to the lower 16 bits
+  // Fun! (thanks Martin Törnwall @mtornwall)
+
+  uint32_t sum = 0;
+  int i;
+  for (i = 0; i < sizeof(message)/2; i++) { //this assumes even message size
+    sum += *((uint16_t *)&message+i);
+  }
+
+  // Finish calculating and set message checksum
+  message.icmp_cksum = (uint16_t) ~(sum + (sum >> 16));
+
+  if ( sendto(sock, &message, sizeof(message), 
+        0, ai_addr, sizeof(*ai_addr)) < 0) {
+    perror("sendto");
+  } 
+}
+
+
+void pong(int sock){
 
   struct icmp message;
   struct sockaddr_storage sendr; //like tumblr, fuck you
@@ -49,31 +90,7 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  printf("%d\n",message.icmp_hun.ih_idseq.icd_id);
+  printf("Message with ID %d received.\n",
+      ntohs(message.icmp_hun.ih_idseq.icd_seq));
 
-  
-}
-
-
-void ping (struct sockaddr* ai_addr, int sock) {
-  struct icmp message;
-  message.icmp_type = ICMP_ECHO;        // 8
-  message.icmp_code = ICMP_ECHOREPLY;  // 0
-  message.icmp_cksum = 0;
-  message.icmp_hun.ih_idseq.icd_id = 1337; // we r so leet
-  message.icmp_hun.ih_idseq.icd_seq = 0;
-  memset(&message.icmp_dun, 0, sizeof(message.icmp_dun));
-
-  uint32_t sum = 0;
-  int i;
-  for (i = 0; i < sizeof(message)/2; i++) { //this assumes even message size
-    sum += *((uint16_t *)&message+i);
-  }
-
-  message.icmp_cksum = (uint16_t) ~(sum + (sum >> 16));
-
-  if ( sendto(sock, &message, sizeof(message), 
-        0, ai_addr, sizeof(*ai_addr)) < 0) {
-    perror("sendto");
-  } 
 }
