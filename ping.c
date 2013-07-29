@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     msg = pong(sock);
     char hostname[128];
     gettimeofday(&end, NULL);
-    printf("time=%f ms\n",
+    printf("time=%f ms\t",
         (end.tv_sec-beg.tv_sec)*1000.0 + (end.tv_usec-beg.tv_usec)/1000.0);
     getnameinfo((struct sockaddr *)&msg, sizeof(msg), 
         hostname, sizeof(hostname), NULL, 0, 0); 
