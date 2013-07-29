@@ -7,6 +7,7 @@
 #include <netinet/ip_icmp.h>
 #include <string.h>
 #include <stdint.h>
+#include <sys/time.h>
 
 /*
  *  USAGE: ping IP_ADDRESS
@@ -14,7 +15,7 @@
 */
 
 void ping(struct sockaddr*, int, uint16_t);
-void pong(int);
+struct sockaddr_in pong(int);
 
 int main(int argc, char* argv[]) {
 
@@ -40,11 +41,21 @@ int main(int argc, char* argv[]) {
   }
 
   uint16_t seq = 0;
+  struct timeval beg;
+  struct timeval end;
+  struct sockaddr_in msg;
 
-  while(1) {
-    seq++;
+  for (; seq < 10; seq++ ) {
+    gettimeofday(&beg, NULL);
     ping(ai->ai_addr, sock, seq);
-    pong(sock);
+    msg = pong(sock);
+    char hostname[128];
+    gettimeofday(&end, NULL);
+    printf("time=%f ms\n",
+        (end.tv_sec-beg.tv_sec)*1000.0 + (end.tv_usec-beg.tv_usec)/1000.0);
+    getnameinfo((struct sockaddr *)&msg, sizeof(msg), 
+        hostname, sizeof(hostname), NULL, 0, 0); 
+    printf("from=%s\n", hostname );
   }
 }
 
@@ -79,7 +90,7 @@ void ping (struct sockaddr* ai_addr, int sock, uint16_t seq) {
 }
 
 
-void pong(int sock){
+struct sockaddr_in pong(int sock){
 
   struct icmp message;
   struct sockaddr_storage sendr; //like tumblr, fuck you
@@ -88,9 +99,7 @@ void pong(int sock){
         0, (struct sockaddr*) &sendr, &fromlen ) < 0) {
     perror("recvfrom");
     exit(1);
+  } else {
+    return *((struct sockaddr_in *)&sendr);
   }
-
-  printf("Message with ID %d received.\n",
-      ntohs(message.icmp_hun.ih_idseq.icd_seq));
-
 }
