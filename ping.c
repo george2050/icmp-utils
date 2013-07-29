@@ -54,5 +54,7 @@ int main(int argc, char* argv[]) {
         hostname, sizeof(hostname), NULL, 0, 0); 
     printf("from=%s\n", hostname );
   }
+
+  return 0;
 }
 
