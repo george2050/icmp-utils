@@ -1,4 +1,5 @@
 #ifndef ICMP_UTILS_H
+
 #define ICMP_UTILS_H
 
 #include <sys/socket.h>
