@@ -49,7 +49,7 @@ struct sockaddr_in pong(int sock){
   if (recvfrom(sock, &message, sizeof(message),
         0, (struct sockaddr*) &sendr, &fromlen ) < 0) {
     perror("recvfrom");
-    exit(1);
+    exit(-1);
   } else {
     return *((struct sockaddr_in *)&sendr);
   }
